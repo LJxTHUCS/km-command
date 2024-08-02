@@ -3,6 +3,12 @@ name = "km-command"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+checker = ["postcard?/alloc"]
+harness = []
+postcard = ["dep:postcard"]
+
 [dependencies]
 bitflags = "2.6.0"
 serde = { version = "1.0.204", features = ["derive"], default-features = false }
+postcard = { version = "1.0.8", optional = true }

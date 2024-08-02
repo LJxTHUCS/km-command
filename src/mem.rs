@@ -7,7 +7,6 @@ command! {
     /// which defines the end of the process's data segment.
     ///
     /// Ref: https://man7.org/linux/man-pages/man2/brk.2.html
-    #[derive(Debug, Serialize, Deserialize)]
     struct Brk {
         /// The new program break.
         addr: usize,
@@ -19,7 +18,6 @@ command! {
     /// Like `brk`, but return the old program break on success.
     ///
     /// Ref: https://man7.org/linux/man-pages/man2/brk.2.html
-    #[derive(Debug, Serialize, Deserialize)]
     struct Sbrk {
         /// The increment to the program break.
         increment: isize,
@@ -32,7 +30,6 @@ command! {
     /// space of the calling process.
     ///
     /// Ref: https://man7.org/linux/man-pages/man2/mmap.2.html
-    #[derive(Debug, Serialize, Deserialize)]
     struct Mmap {
         /// The starting address of the mapping.
         addr: usize,
@@ -52,7 +49,6 @@ command! {
     /// space of the calling process.
     ///
     /// Ref: https://man7.org/linux/man-pages/man2/munmap.2.html
-    #[derive(Debug, Serialize, Deserialize)]
     struct Munmap {
         /// The starting address of unmapping.
         addr: usize,
@@ -68,7 +64,6 @@ command! {
     /// in the interval [addr, addr+len-1].
     ///
     /// Ref: https://man7.org/linux/man-pages/man2/mprotect.2.html
-    #[derive(Debug, Serialize, Deserialize)]
     struct Mprotect {
         /// The starting address of protection.
         start: usize,
@@ -127,6 +122,8 @@ bitflags! {
         /// Don't interpret addr as a hint: place the mapping at
         /// exactly that address.
         const MAP_FIXED = 1 << 4;
+        /// No backend file is associated with the mapping.
+        const MAP_ANONYMOUS = 1 << 5;
     }
 }
 
