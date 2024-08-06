@@ -7,8 +7,14 @@
 #[cfg(all(feature = "checker", feature = "harness"))]
 compile_error!("Cannot enable both `checker` and `harness` features at the same time.");
 
+/// Common Linux error codes.
+pub mod error;
+
 /// Memory-related commands.
 pub mod mem;
+
+/// Filesystem-related commands.
+pub mod fs;
 
 /// Define a command with a fixed command id. Implement `Debug`,
 /// `Serialize`, and `Deserialize` for the command.
@@ -22,7 +28,7 @@ pub mod mem;
 macro_rules! command {
     (
         $(#[$outer:meta])*
-        struct $name:ident {
+        struct $name:ident $(<$lt:lifetime>)? {
             $($(#[$attr:meta])* $field:ident: $t:ty,)*
         },
         $id:literal
@@ -30,11 +36,11 @@ macro_rules! command {
         $(#[$outer])*
         #[derive(Debug, Serialize, Deserialize)]
         #[repr(C)]
-        pub struct $name {
+        pub struct $name$(<$lt>)? {
             $($(#[$attr])* pub $field: $t),*
         }
 
-        impl $name {
+        impl$(<$lt>)? $name$(<$lt>)? {
             /// Command id.
             pub const ID: usize = $id;
 
@@ -47,7 +53,7 @@ macro_rules! command {
         }
 
         #[cfg(feature = "checker")]
-        impl $name {
+        impl$(<$lt>)? $name$(<$lt>)? {
             /// Serialize the command into a byte array
             pub fn to_bytes(&self) -> Vec<u8> {
                 if cfg!(feature = "postcard") {
@@ -59,7 +65,7 @@ macro_rules! command {
         }
 
         #[cfg(feature = "harness")]
-        impl $name {
+        impl$(<$lt>)? $name$(<$lt>)? {
             /// Deserialize the command from a byte array, return the command and the remaining data.
             pub fn from_bytes(data: &[u8]) -> Option<(Self, &[u8])> {
                 if cfg!(feature = "postcard") {
