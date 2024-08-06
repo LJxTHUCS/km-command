@@ -10,5 +10,6 @@ postcard = ["dep:postcard"]
 
 [dependencies]
 bitflags = "2.6.0"
+heapless = "0.8.0"
 serde = { version = "1.0.204", features = ["derive"], default-features = false }
 postcard = { version = "1.0.8", optional = true }
