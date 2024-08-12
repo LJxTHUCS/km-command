@@ -2,7 +2,7 @@ use crate::command;
 use bitflags::bitflags;
 use core::{
     ops::{Deref, DerefMut},
-    str::FromStr,
+    str::{self, FromStr},
 };
 use heapless::String;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -11,7 +11,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub const MAX_PATH_LEN: usize = 256;
 
 /// Path type - a fixed capacity string.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Path(pub String<MAX_PATH_LEN>);
 
 impl Serialize for Path {
@@ -105,6 +105,8 @@ command!(
     struct Getdents {
         /// The file descriptor to get directory entries from.
         fd: isize,
+        /// The expected number of dentries to get.
+        count: usize,
     },
     61
 );
@@ -191,11 +193,19 @@ bitflags! {
     #[derive(Debug, Clone, Copy)]
     pub struct OpenFlags: u32 {
         /// Open for reading only.
-        const O_RDONLY = 0o00000000;
+        const RDONLY = 0o00000000;
         /// Open for writing only.
-        const O_WRONLY = 0o00000001;
+        const WRONLY = 0o00000001;
         /// Open for reading and writing.
-        const O_RDWR = 0o00000002;
+        const RDWR = 0o00000002;
+        /// Create file if it does not exist.
+        const CREAT = 0o00000100;
+        /// Append data to the file.
+        const APPEND = 0o00000200;
+        /// Truncate file to size 0.
+        const TRUNC = 0o00000400;
+        /// Expect to open a directory.
+        const DIRECTORY = 0o01000000;
     }
 }
 
@@ -261,5 +271,50 @@ impl<'de> Deserialize<'de> for FileMode {
         Ok(FileMode::from_bits_truncate(u32::deserialize(
             deserializer,
         )?))
+    }
+}
+
+/// File kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum FileKind {
+    File,
+    Directory,
+}
+
+/// File status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+pub struct FileStat {
+    /// inode number.
+    pub ino: usize,
+    /// File mode.
+    pub mode: FileMode,
+    /// File size in bytes.
+    pub uid: u32,
+    /// Group ID.
+    pub gid: u32,
+    /// File kind.
+    pub kind: FileKind,
+    /// Link count.
+    pub nlink: usize,
+}
+
+/// Directory entry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+pub struct DirEntry {
+    /// Inode number.
+    pub ino: usize,
+    /// Name length.
+    pub name_len: usize,
+    /// Name.
+    pub name: [u8; 256],
+}
+
+impl DirEntry {
+    /// Parse name as str.
+    pub fn name(&self) -> &str {
+        unsafe { str::from_utf8_unchecked(&self.name[..self.name_len]) }
     }
 }
