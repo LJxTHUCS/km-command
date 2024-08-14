@@ -90,3 +90,14 @@ pub fn id_from_bytes(data: &[u8]) -> (usize, &[u8]) {
     let id = usize::from_le_bytes(data[..core::mem::size_of::<usize>()].try_into().unwrap());
     (id, &data[core::mem::size_of::<usize>()..])
 }
+
+use serde::{Deserialize, Serialize};
+
+command!(
+    /// Do-nothing Command.
+    ///
+    /// `Nop` is used when there is a command need to be sent,
+    /// but no actual work needs to be done.
+    struct Nop {},
+    65535
+);
