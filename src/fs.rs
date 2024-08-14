@@ -137,6 +137,8 @@ command!(
         dirfd: isize,
         /// The path of the file to delete.
         path: Path,
+        /// Unlink directory.
+        flags: UnlinkatFlags,
     },
     35
 );
@@ -190,7 +192,7 @@ command!(
 
 bitflags! {
     /// Flags for the `Open` command.
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, Default)]
     pub struct OpenFlags: u32 {
         /// Open for reading only.
         const RDONLY = 0o00000000;
@@ -269,6 +271,35 @@ impl<'de> Deserialize<'de> for FileMode {
         D: Deserializer<'de>,
     {
         Ok(FileMode::from_bits_truncate(u32::deserialize(
+            deserializer,
+        )?))
+    }
+}
+
+bitflags! {
+    /// Unlink flags.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct UnlinkatFlags: u32 {
+        /// Directory is to be deleted.
+        const REMOVEDIR = 0x200;
+    }
+}
+
+impl Serialize for UnlinkatFlags {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u32(self.bits())
+    }
+}
+
+impl<'de> Deserialize<'de> for UnlinkatFlags {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(UnlinkatFlags::from_bits_truncate(u32::deserialize(
             deserializer,
         )?))
     }
