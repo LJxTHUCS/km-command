@@ -99,7 +99,7 @@ command!(
 
 command!(
     /// Get directory entrys. Harness should prepare a buffer with size of `len`.
-    /// 
+    ///
     /// Ref: https://man7.org/linux/man-pages/man2/getdents.2.html
     struct Getdents {
         /// The file descriptor to get directory entries from.
@@ -370,7 +370,10 @@ impl LibcDirent {
 
     /// Get the name of the directory entry.
     pub fn name(&self) -> &str {
-        unsafe { str::from_utf8_unchecked(&self.name[..self.reclen as usize - Self::MIN_SIZE]) }
+        unsafe {
+            str::from_utf8_unchecked(&self.name[..self.reclen as usize - Self::MIN_SIZE])
+                .trim_end_matches('\0')
+        }
     }
 }
 
@@ -385,7 +388,7 @@ pub struct LibcStat {
     pub uid: u32,
     pub gid: u32,
     pub rdev: u64,
-    _pad1: usize,
+    _pad1: u64,
     pub size: u64,
     pub blksize: u32,
     _pad2: u32,
@@ -396,6 +399,7 @@ pub struct LibcStat {
     pub mtime_nsec: u64,
     pub ctime_sec: u64,
     pub ctime_nsec: u64,
+    _pad3: u64,
 }
 
 impl LibcStat {
