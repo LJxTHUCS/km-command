@@ -1,6 +1,7 @@
 use crate::command;
 use bitflags::bitflags;
 use core::{
+    mem::size_of,
     ops::{Deref, DerefMut},
     str::{self, FromStr},
 };
@@ -309,43 +310,104 @@ impl<'de> Deserialize<'de> for UnlinkatFlags {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum FileKind {
-    File,
-    Directory,
+    Unknown = 0,
+    Fifo = 1,
+    CharDevice = 2,
+    Directory = 4,
+    BlockDevice = 6,
+    File = 8,
+    Symlink = 10,
+    Sockect = 12,
 }
 
-/// File status.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// libc directory entry defination.
+#[derive(Debug, Clone)]
 #[repr(C)]
-pub struct FileStat {
-    /// inode number.
+pub struct LibcDirent {
+    /// 64-bit inode number
     pub ino: usize,
-    /// File mode.
-    pub mode: FileMode,
-    /// File size in bytes.
-    pub uid: u32,
-    /// Group ID.
-    pub gid: u32,
-    /// File kind.
-    pub kind: FileKind,
-    /// Link count.
-    pub nlink: usize,
-}
-
-/// Directory entry.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(C)]
-pub struct DirEntry {
-    /// Inode number.
-    pub ino: usize,
-    /// Name length.
-    pub name_len: usize,
-    /// Name.
+    /// 64-bit offset to next derent
+    pub off: usize,
+    /// Size of this dirent
+    pub reclen: u16,
+    /// Filekind
+    pub type_: u8,
+    /// File name
     pub name: [u8; 256],
 }
 
-impl DirEntry {
-    /// Parse name as str.
+impl LibcDirent {
+    /// The minimum size of a dirent i.e. name is empty.
+    pub const MIN_SIZE: usize = size_of::<usize>() * 2 + size_of::<u16>() + size_of::<u8>();
+
+    /// The maximum size of a dirent.
+    pub const MAX_SIZE: usize = Self::MIN_SIZE + 256;
+
+    /// Maximum buffer size which can only contain one dirent.
+    pub const ONE_DIRENT_BUF_SIZE: usize = Self::MIN_SIZE * 2;
+
+    /// Get the file kind of the directory entry.
+    pub fn kind(&self) -> FileKind {
+        match self.type_ {
+            1 => FileKind::Fifo,
+            2 => FileKind::CharDevice,
+            4 => FileKind::Directory,
+            6 => FileKind::BlockDevice,
+            8 => FileKind::File,
+            10 => FileKind::Symlink,
+            12 => FileKind::Sockect,
+            _ => FileKind::Unknown,
+        }
+    }
+
+    /// Get the name of the directory entry.
     pub fn name(&self) -> &str {
-        unsafe { str::from_utf8_unchecked(&self.name[..self.name_len]) }
+        unsafe { str::from_utf8_unchecked(&self.name[..self.reclen as usize - Self::MIN_SIZE]) }
+    }
+}
+
+/// libc file stat defination.
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct LibcStat {
+    pub dev: u64,
+    pub ino: u64,
+    pub mode: u32,
+    pub nlink: u32,
+    pub uid: u32,
+    pub gid: u32,
+    pub rdev: u64,
+    _pad1: usize,
+    pub size: u64,
+    pub blksize: u32,
+    _pad2: u32,
+    pub blocks: u64,
+    pub atime_sec: u64,
+    pub atime_nsec: u64,
+    pub mtime_sec: u64,
+    pub mtime_nsec: u64,
+    pub ctime_sec: u64,
+    pub ctime_nsec: u64,
+}
+
+impl LibcStat {
+    /// Permission bits of the file.
+    pub fn mode(&self) -> FileMode {
+        FileMode::from_bits_truncate(self.mode)
+    }
+
+    /// Kind of the file.
+    pub fn kind(&self) -> FileKind {
+        let kind_bits = self.mode & 0o170000;
+        match kind_bits {
+            0o010000 => FileKind::Fifo,
+            0o020000 => FileKind::CharDevice,
+            0o040000 => FileKind::Directory,
+            0o060000 => FileKind::BlockDevice,
+            0o100000 => FileKind::File,
+            0o120000 => FileKind::Symlink,
+            0o140000 => FileKind::Sockect,
+            _ => FileKind::Unknown,
+        }
     }
 }
