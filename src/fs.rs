@@ -98,18 +98,26 @@ command!(
 );
 
 command!(
-    /// Get directory entrys. This command returns all the directory
-    /// entries in the directory. Harness may call `getdents` multiple
-    /// times to get all the directory entries.
-    ///
+    /// Get directory entrys. Harness should prepare a buffer with size of `len`.
+    /// 
     /// Ref: https://man7.org/linux/man-pages/man2/getdents.2.html
     struct Getdents {
         /// The file descriptor to get directory entries from.
         fd: isize,
-        /// The expected number of dentries to get.
-        count: usize,
+        /// The length of the buffer in bytes.
+        len: usize,
     },
     61
+);
+
+command!(
+    /// Get only 1 directory entry. Harness should use a very small buffer that
+    /// is just enough to hold 1 directory entry.
+    struct Getdents1 {
+        /// The file descriptor to get directory entries from.
+        fd: isize,
+    },
+    10061
 );
 
 command!(
